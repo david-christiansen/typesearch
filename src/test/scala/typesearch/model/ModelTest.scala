@@ -9,7 +9,10 @@ object TestModel {
 
   val idtype: Type = Func(TypeVar("A"), TypeVar("A"))
 
-  val listOfInt: Type = TypeApp(NamedType("scala.collection.immutable", "List"), List(int))
+  val listOfInt: Type = TypeApp(
+      TypeConstr("scala.collection.immutable", "List", List("A")),
+      List(int)
+  )
 
   val testVals: mutable.Map[String, Type] =
     mutable.Map("x" -> int, "id" -> idtype, "numbers" -> listOfInt)
