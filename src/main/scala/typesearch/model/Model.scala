@@ -36,6 +36,7 @@ trait Type
 case class NamedType(pkg: Package, name: String) extends Type
 case class TypeVar(name: String) extends Type
 case class TypeApp(t1: Type, args: List[Type]) extends Type
+case class TypeConstr(pkg: Package, name: String, args: List[String])
 //Concrete types
 case object AnyT extends Type
 case object NothingT extends Type
