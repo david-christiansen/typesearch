@@ -32,6 +32,23 @@ case object Invariant extends Variance
 case object Covariant extends Variance
 case object Contravariant extends Variance
 
+sealed abstract class Kind
+case class TKind (lower: Type = NothingT, upper: Type = AnyT) extends Kind
+case class ArrKind (k1: Kind, k2: Kind) extends Kind
+
+case class TypeArg (name: String, kind: Kind = TKind())
+
+trait TypeDef {
+  val name: String
+  val typeArgs: List[TypeArg]
+  val extending: Type
+}
+case class Trait (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef
+case class Class (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef
+case class Object (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef with Signature {
+  val returnType = extending
+}
+
 trait Type
 case class NamedType(pkg: Package, name: String) extends Type
 case class TypeVar(name: String) extends Type
@@ -39,9 +56,11 @@ case class TypeApp(t1: Type, args: List[Type]) extends Type
 case class TypeConstr(pkg: Package, name: String, args: List[String]) extends Type
 case class StructType(members: List[Signature]) extends Type
 case class TypeProjection(from: Type, name: String) extends Type
+case class TraitComposition(base: Type, types: List[Type]) extends Type
 //Base types
 case object AnyT extends Type
 case object NothingT extends Type
+case object UnitT extends Type
 case class Func(t1: Type, t2: Type) extends Type
 case class Tuple(ts: List[Type]) extends Type
 

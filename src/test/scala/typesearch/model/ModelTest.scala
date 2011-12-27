@@ -1,7 +1,6 @@
 package typesearch.model
 
 object TestModel {
-  import scala.collection.mutable
 
   implicit def str2pack(name: String): Package = Package(name)
 
@@ -14,7 +13,10 @@ object TestModel {
       List(int)
   )
 
-  val testVals: mutable.Map[String, Type] =
-    mutable.Map("x" -> int, "id" -> idtype, "numbers" -> listOfInt)
-
+  val repo: List[Signature] =
+    ValSig("x", int) ::
+    ValSig("id", idtype) ::
+    ValSig("xs", listOfInt) ::
+    DefSig("doIt", List(List("x" -> AnyT)), UnitT) ::
+    Nil
 }
