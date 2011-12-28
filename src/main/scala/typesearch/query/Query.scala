@@ -85,23 +85,4 @@ case class QArg(name: Option[String], typ: QType) {
   def query(outer: Int, inner: Int) = List()
 }
 
-object TestQueries extends QueryParser with App {
-  def test():Unit = {
-    print("------Query> ")
-    val input = Console.readLine()
-    if (input != "q") {
-      val q = parse(input, query)
-      q match {
-        case Success(p,_) => {
-          //p.asInstanceOf[Query].findMatching() foreach(x=>println("RESULT: " + x.in.obj.open_!.toString + "#" + x.name))
-        }
-        case _ => println("Failed to parse")
-      }
-      test()
-    }
-  }
-
-  test()
-}
-
 
