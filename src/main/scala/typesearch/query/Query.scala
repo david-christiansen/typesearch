@@ -4,10 +4,21 @@ import typesearch.model.{Type, Signature}
 
 sealed abstract class MemType
 
-object Def extends MemType
-object Val extends MemType
-object Var extends MemType
-object LazyVal extends MemType
+object Def extends MemType {
+  override def toString = "def"
+}
+
+object Val extends MemType {
+  override def toString = "val"
+}
+
+object Var extends MemType {
+  override def toString = "var"
+}
+
+object LazyVal extends MemType {
+  override def toString = "lazyval"
+}
 
 sealed abstract class QType {
   def query(): List[Type]
