@@ -33,7 +33,7 @@ class Dumper {
     val universe = new Compiler(reporter, docSettings) universe files
 
     log("Extracting functions from the model...")
-    //(new Extractor(println, pack, config)).passFunctions(universe, DefRepo.batchInsert)
+    Extractor.extract(universe)
     
   }
 
