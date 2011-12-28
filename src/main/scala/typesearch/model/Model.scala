@@ -5,6 +5,7 @@ sealed abstract class Package {
   def path: List[Package]
 }
 object Package {
+  // This can be optimized later to prevent duplicate instances
   def apply(path: List[String]): Package =
     path.foldLeft[Package](RootPackage)(ChildPackage(_, _))
 
@@ -53,16 +54,16 @@ case class Object (name: String, typeArgs: List[TypeArg], extending: Type) exten
 trait HasShape {
   val shape: String
 }
-trait Type extends HasShape
 
+trait Type extends HasShape
 trait IsAtom extends HasShape {
   val shape = "*"
 }
 
 case class NamedType(pkg: Package, name: String) extends Type with IsAtom
 case class TypeVar(name: String) extends Type with IsAtom
-case class TypeApp(t1: Type, args: List[Type]) extends Type {
-  val shape = t1.shape + args.map(_.shape).mkString("[", ",", "]")
+case class TypeApp(tOp: Type, args: List[Type]) extends Type {
+  val shape = tOp.shape + args.map(_.shape).mkString("[", ",", "]")
 }
 case class TypeConstr(pkg: Package, name: String, args: List[String]) extends Type with IsAtom
 case class StructType(members: List[Signature]) extends Type with IsAtom
