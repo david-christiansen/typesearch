@@ -13,4 +13,6 @@ libraryDependencies += "se.scalablesolutions.akka" % "akka-actor" % "1.3-RC4"
 
 libraryDependencies += "se.scalablesolutions.akka" % "akka-remote" % "1.3-RC4"
 
+//Add scala compiler
 
+libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ ) 
