@@ -49,20 +49,36 @@ case class Object (name: String, typeArgs: List[TypeArg], extending: Type) exten
   val returnType = extending
 }
 
-trait Type
-case class NamedType(pkg: Package, name: String) extends Type
-case class TypeVar(name: String) extends Type
-case class TypeApp(t1: Type, args: List[Type]) extends Type
-case class TypeConstr(pkg: Package, name: String, args: List[String]) extends Type
-case class StructType(members: List[Signature]) extends Type
-case class TypeProjection(from: Type, name: String) extends Type
-case class TraitComposition(base: Type, types: List[Type]) extends Type
+
+trait HasShape {
+  val shape: String
+}
+trait Type extends HasShape
+
+trait IsAtom extends HasShape {
+  val shape = "*"
+}
+
+case class NamedType(pkg: Package, name: String) extends Type with IsAtom
+case class TypeVar(name: String) extends Type with IsAtom
+case class TypeApp(t1: Type, args: List[Type]) extends Type {
+  val shape = t1.shape + args.map(_.shape).mkString("[", ",", "]")
+}
+case class TypeConstr(pkg: Package, name: String, args: List[String]) extends Type with IsAtom
+case class StructType(members: List[Signature]) extends Type with IsAtom
+case class TypeProjection(from: Type, name: String) extends Type with IsAtom
+case class TraitComposition(base: Type, types: List[Type]) extends Type with IsAtom
+
 //Base types
-case object AnyT extends Type
-case object NothingT extends Type
-case object UnitT extends Type
-case class Func(t1: Type, t2: Type) extends Type
-case class Tuple(ts: List[Type]) extends Type
+case object AnyT extends Type with IsAtom
+case object NothingT extends Type with IsAtom
+case object UnitT extends Type with IsAtom
+case class Func(t1: Type, t2: Type) extends Type {
+  val shape = "*[" + t1.shape + "," + t2.shape + "]"
+}
+case class Tuple(ts: List[Type]) extends Type {
+  val shape = "*" + ts.map(_.shape).mkString("[", ",", "]")
+}
 
 trait Signature {
   val name: String
