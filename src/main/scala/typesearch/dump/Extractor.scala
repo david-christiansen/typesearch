@@ -37,7 +37,7 @@ object Extractor {
     dte match {
       case c: model.Class => Class(c.name, createTypeArgs(), createTypeVar(), createPackage(c.toRoot))
       case t: model.Trait => Trait(t.name, createTypeArgs(), createTypeVar(), createPackage(t.toRoot))
-      case o: model.Object => Object(o.name, createTypeArgs(), createTypeVar(), createPackage(o.toRoot))
+      case o: model.Object => Object(o.name, createTypeVar(), createPackage(o.toRoot))
     }
   }
   
