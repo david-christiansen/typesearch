@@ -8,7 +8,7 @@ package typesearch.utils
 
 import java.io.File
 
-class Locator {
+object Locator {
 
   var regex = """^(.+).scala$""".r
 
