@@ -67,9 +67,9 @@ object ModelSerialization {
         case JsString("NothingT") => NothingT
         case JsString("UnitT") => UnitT
         case JsString("Func") => {
-          val t1 = fromjson[Type](obj("t1"))
-          val t2 = fromjson[Type](obj("t2"))
-          Func(t1, t2)
+          val args = fromjson[List[Type]](obj("args"))
+          val result = fromjson[Type](obj("result"))
+          Func(args, result)
         }
         case JsString("Tuple") => {
           val ts = fromjson[List[Type]](obj("ts"))
@@ -98,8 +98,8 @@ object ModelSerialization {
       case AnyT => buildObject("AnyT")
       case NothingT => buildObject("NothingT")
       case UnitT => buildObject("UnitT")
-      case Func(t1, t2) =>
-        buildObject("Func", "t1" -> tojson(t1), "t2" -> tojson(t2))
+      case Func(args, result) =>
+        buildObject("Func", "args" -> tojson[List[Type]](args), "result" -> tojson[Type](result))
       case Tuple(ts) => buildObject("Tuple", "ts" -> tojson(ts))
     }
 

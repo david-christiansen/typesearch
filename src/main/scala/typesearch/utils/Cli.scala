@@ -6,10 +6,8 @@ import typesearch.dump.Dumper
 import java.io.File
 
 object Cli {
-  
-  val locator = new Locator
   val dumper = new Dumper
-  
+
   def main(args: Array[String]): Unit = sys exit {
     args.head match {
       case "dump" => dump(args.tail.toList)
@@ -20,30 +18,36 @@ object Cli {
     }
     0
   }
-  
+
   def dump(filepaths: List[String]): Unit = {
     val files = filepaths map (f => new File(f))
-    val sources = locator locate files map (_.getPath)
+    val sources = Locator locate files map (_.getPath)
     dumper.process(sources)
   }
-  
-  def testQueryParser():Unit = {
+
+  def testQueryParser(): Unit = {
+    import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
+    val reader = new JLineReader(NoCompletion)
+
     val qp = new QueryParser
-    print("------PARSER> ")
-    val input = Console.readLine()
-    if (input != "q") {
-      var scan = new qp.lexical.Scanner(input)
-      var lexed = collection.mutable.ListBuffer[qp.lexical.Token]()
-      while (!scan.atEnd) {
-        lexed += scan.first
-        scan = scan.rest
+    val input = Option(reader.readOneLine("-----PARSER> "))
+    input match {
+      case None => ()
+      case Some(":quit") => ()
+      case Some(in) => {
+        var scan = new qp.lexical.Scanner(in)
+        var lexed = collection.mutable.ListBuffer[qp.lexical.Token]()
+        while (!scan.atEnd) {
+          lexed += scan.first
+          scan = scan.rest
+        }
+        print("Tokens: ")
+        println(lexed toList)
+        print("Query: ")
+        println(qp.parse(in, qp.query))
+        testQueryParser()
       }
-      print("Tokens: ")
-      println(lexed toList)
-      print("Query: ")
-      println(qp.parse(input, qp.query))
-      testQueryParser()
-    } 
+    }
   }
 }
 
