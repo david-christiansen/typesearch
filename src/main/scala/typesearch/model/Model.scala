@@ -34,8 +34,12 @@ case object Covariant extends Variance
 case object Contravariant extends Variance
 
 sealed abstract class Kind
-case class TKind (lower: Type = NothingT, upper: Type = AnyT) extends Kind
-case class ArrKind (k1: Kind, k2: Kind) extends Kind
+case class TKind (lower: Type = NothingT, upper: Type = AnyT) extends Kind {
+  override def toString = "*"
+}
+case class ArrKind (k1: Kind, k2: Kind) extends Kind {
+  override def toString = k1 + " -> " + k2
+}
 
 case class TypeArg (name: String, kind: Kind = TKind())
 
