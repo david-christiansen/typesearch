@@ -20,3 +20,5 @@ libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ )
 //Test info
 
 libraryDependencies += "org.scala-tools.testing" %% "scalacheck" % "1.9" % "test"
+
+parallelExecution in Test := false
