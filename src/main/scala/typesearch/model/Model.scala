@@ -76,6 +76,7 @@ case class TypeProjection(from: Type, name: String) extends Type with IsAtom
 case class TraitComposition(base: Type, types: List[Type]) extends Type with IsAtom
 
 //Base types
+case object Wildcard extends Type with IsAtom
 case object AnyT extends Type with IsAtom
 case object NothingT extends Type with IsAtom
 case object UnitT extends Type with IsAtom

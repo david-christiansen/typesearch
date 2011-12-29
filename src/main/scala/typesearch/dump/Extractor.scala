@@ -13,14 +13,18 @@ object Extractor {
   
   def extract(docModel: Universe): List[Signature] = {
     val dte = flatten(docModel.rootPackage)
-    dte foreach (item => item match {
-      case d: model.Def => sigs = DefSig(d.name, createArgs(d.valueParams), createType(d.resultType), createTypeDef(d.inTemplate)) :: sigs
-      case v: model.Val if v.isVal => sigs = ValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
-      case v: model.Val if v.isVar => sigs = VarSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
-      case v: model.Val if v.isLazyVal => sigs = LazyValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
-      case _ => ()
-    })
-    sigs
+    dte map (item => item match {
+      case d: model.Def =>
+        for (args <- createArgs(d.valueParams); t <- createType(d.resultType))
+        yield DefSig(d.name, args, t, createTypeDef(d.inTemplate))
+      case v: model.Val if v.isVal =>
+        for (t <- createType(v.resultType)) yield ValSig(v.name, t, createTypeDef(v.inTemplate))
+      case v: model.Val if v.isVar =>
+        for (t <- createType(v.resultType)) yield VarSig(v.name, t, createTypeDef(v.inTemplate))
+      case v: model.Val if v.isLazyVal =>
+        for (t <- createType(v.resultType)) yield LazyValSig(v.name, t, createTypeDef(v.inTemplate))
+      case _ => None
+    }) collect { case Some(x) => x }
   }
   
   //FIXME: Might have to check which type of entity you have
@@ -33,16 +37,17 @@ object Extractor {
   
   def createTypeDef(dte: model.DocTemplateEntity): TypeDef = {
     dte match {
-      case c: model.Class => Class(c.name, createTypeArgs(c.typeParams), c.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(c.toRoot))
-      case t: model.Trait => Trait(t.name, createTypeArgs(t.typeParams), t.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(t.toRoot))
-      case o: model.Object => Object(o.name, o.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(o.toRoot))
+      case c: model.Class =>
+        Class(c.name, createTypeArgs(c.typeParams), c.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(c.toRoot))
+      case t: model.Trait =>
+        Trait(t.name, createTypeArgs(t.typeParams), t.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(t.toRoot))
+      case o: model.Object =>
+        Object(o.name, o.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(o.toRoot))
     }
   }
   
   def createTypeArgs(tps: List[model.TypeParam]): List[TypeArg] = {
-    val res = tps map (tp => TypeArg(tp.name, createKind(tp)))
-    res foreach(x => println(x.name + ": " + x.kind))
-    res
+    tps map (tp => TypeArg(tp.name, createKind(tp)))
   }
   
   def createKind(param: model.HigherKinded): Kind = {
@@ -56,12 +61,25 @@ object Extractor {
   }
   
   //FIXME - undefined
-  def createType(te: model.TypeEntity): Type = {
-    TypeVar("NOT A TYPEVAR- FILLER")
+  def createType(te: model.TypeEntity): Option[Type] = {
+    val parser = new TypeParser
+    parser.parse(te.name.replace("\u21d2","=>")) match {
+        case parser.Success(t, _) => Some(t)
+        case f@parser.Failure(msg, pos) => {println(f);None}
+        case _ => None
+      }
   }
   
-  def createArgs(argLists: List[List[model.ValueParam]]): List[List[(String, Type)]] = {
-    argLists map(argList => argList map(arg => (arg.name, createType(arg.resultType))))
+  def createArgs(argLists: List[List[model.ValueParam]]): Option[List[List[(String, Type)]]] = {
+    def processArgList(args: List[model.ValueParam]): Option[List[(String, Type)]] = {
+      val parsed = args map (arg => (arg.name, createType(arg.resultType)))
+      val collected = parsed collect {case (str, Some(t)) => (str, t)}
+      if (collected.length == parsed.length) Some(collected) else None
+    }
+    
+    val parsedLists = argLists map processArgList
+    val collected = parsedLists collect { case Some(x) => x}
+    if (parsedLists.length == collected.length) Some(collected) else None
   }
   
   def flatten(obj: model.Entity): List[model.MemberEntity] = {
