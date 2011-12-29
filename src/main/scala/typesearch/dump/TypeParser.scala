@@ -302,27 +302,3 @@ class TypeParser(val lexical: TypeLexer = new TypeLexer) extends TokenParsers wi
   }  
 }
 
-object TestTypeLexer extends TypeLexer with Application {
-  def test(): Unit = {
-    print("> ")
-    val input = Console.readLine()
-    if (input != "q") {
-      println(phrase(token)(new scala.util.parsing.input.CharSequenceReader(input)))
-      test()
-    }     
-  }
-  test()
-}
-
-object TestTypeParser extends TypeParser with Application {
-  def test():Unit = {
-    print("> ")
-    val input = Console.readLine()
-    if (input != "q") {
-      println(parse(input, scalaType))
-      test()
-    } 
-  }
-
-  test()
-}

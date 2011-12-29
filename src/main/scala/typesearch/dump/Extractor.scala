@@ -65,15 +65,21 @@ object Extractor {
     val parser = new TypeParser
     parser.parse(te.name.replace("\u21d2","=>")) match {
         case parser.Success(t, _) => Some(t)
-        case f@parser.Failure(msg, pos) => {println(f);None}
+        case f@parser.Failure(msg, pos) => {println(te.name + " - " + f);None}
         case _ => None
       }
   }
   
-  def createArgs(argLists: List[List[model.ValueParam]]): Option[List[List[(String, Type)]]] = {
-    def processArgList(args: List[model.ValueParam]): Option[List[(String, Type)]] = {
-      val parsed = args map (arg => (arg.name, createType(arg.resultType)))
-      val collected = parsed collect {case (str, Some(t)) => (str, t)}
+  def createArgs(argLists: List[List[model.ValueParam]]): Option[List[List[MethodArg]]] = {
+    def processArgList(args: List[model.ValueParam]): Option[List[(MethodArg)]] = {
+      val parsed = args map (arg => {
+        //FIXME should be handled
+        if (arg.resultType.name.startsWith("\u21d2")) {
+          //FIXME I just want to make this work on some data
+          ("blah", None)
+        } else (arg.name, createType(arg.resultType))
+      })
+      val collected = parsed collect {case (str, Some(t)) => MethodArg(str, t)}
       if (collected.length == parsed.length) Some(collected) else None
     }
     

@@ -94,6 +94,9 @@ case class Tuple(ts: List[Type]) extends Type {
   val shape = "*" + ts.map(_.shape).mkString("[", ",", "]")
 }
 
+
+case class MethodArg (name: String, typ: Type, byName: Boolean = false)
+
 trait Signature {
   val name: String
   val returnType: Type
@@ -101,5 +104,5 @@ trait Signature {
 }
 case class ValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
 case class LazyValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
-case class DefSig (name: String, args: List[List[(String, Type)]], returnType: Type, definedOn: TypeDef) extends Signature
+case class DefSig (name: String, args: List[List[MethodArg]], returnType: Type, definedOn: TypeDef) extends Signature
 case class VarSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
