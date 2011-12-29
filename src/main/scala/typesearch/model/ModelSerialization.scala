@@ -130,15 +130,14 @@ object ModelSerialization {
         (fromjson[String](m("name")), fromjson[List[TypeArg]](m("typeArgs")), fromjson[Type](m("extends")), fromjson[Package](m("inPackage")))
     }
     def reads(json: JsValue): TypeDef = json match {
-      case td@JsObject(obj) =>
+      case td@JsObject(obj) => {
         val (name, typeArgs, extending, inPackage) = typedef(td)
         obj("type") match {
           case JsString("Class") => Class(name, typeArgs, extending, inPackage)
           case JsString("Trait") => Trait(name, typeArgs, extending, inPackage)
-          case JsString("Class") => {
-            assert(typeArgs isEmpty, "Classes don't take type arguments"); Object(name, extending, inPackage)
-          }
+          case JsString("Object") => Object(name, extending, inPackage) ensuring (typeArgs isEmpty)
         }
+      }
     }
 
     def buildTypeDef(typ: String, td: TypeDef): JsValue =
