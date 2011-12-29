@@ -69,7 +69,7 @@ case class Query( path: Option[QPath],
     resultType.toString
   }
   
-  def findMatching() = List() 
+  def findMatching(): List[Signature] = List() 
 }
 
 case class QPath(components: List[String]) {
