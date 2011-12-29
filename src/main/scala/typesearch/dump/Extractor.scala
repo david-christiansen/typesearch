@@ -2,41 +2,49 @@ package typesearch.dump
 
 import scala.tools.nsc.doc.{model, Universe}
 import scala.collection.mutable
-
 import typesearch.model._
+import scala.tools.nsc.doc.model.ValueParam
 
 object Extractor {
   
   val seen = mutable.HashSet.empty[model.MemberEntity]
-  
-  var packages = List(): List[Package]
-  var typeDefs = List(): List[TypeDef]
-  
+
+  var defSigs = List(): List[Signature]
+  //ValSig (name: String, returnType: Type, definedOn: TypeDef)
   def extract(docModel: Universe) = {
     val dte = flatten(docModel.rootPackage)
     dte foreach (item => item match {
-      //this wastes space since it just creates objects when it needs it instead of using existing ones
-      case p: model.Package => packages = ChildPackage(createPackage(p.toRoot), p.name) :: packages
-      case c: model.Class => typeDefs = Class(c.name, List(), TypeVar("NOT A TYPEVAR - FILLER")) :: typeDefs
-      case t: model.Trait => typeDefs = Trait(t.name, List(), TypeVar("NOT A TYPEVAR - FILLER")) :: typeDefs
-      case o: model.Object => typeDefs = Object(o.name, List(), TypeVar("NOT A TYPEVAR - FILLER")) :: typeDefs
-      case d: model.Def => ()
-      case v: model.Val => ()
+      case d: model.Def => DefSig(d.name, createArgs(d.valueParams), createType(d.resultType), createTypeDef(d.inTemplate))
+      case v: model.Val if v.isVal => ValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
+      case v: model.Val if v.isVar => VarSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
+      case v: model.Val if v.isLazyVal => LazyValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
       case _ => ()
     })
     
-    typeDefs foreach println
-    
     println("dte length: " + dte.length)
-    
-    println("packages: " + typeDefs.length)
   }
   
-  def createPackage(pack: List[model.Package]): Package = {
+  //FIXME: Might have to check which type of entity you have
+  def createPackage(pack: List[model.DocTemplateEntity]): Package = {
     pack.head.toString() match {
       case "_root_" => RootPackage
       case p => ChildPackage(createPackage(pack.tail), pack.head.name)
     } 
+  }
+  
+  //FIXME - undefined
+  def createTypeDef(e: model.DocTemplateEntity): TypeDef = {
+    Class(e.name, List(), TypeVar("NOT A TYPEVAR - FILLER"), createPackage(e.toRoot))
+  }
+  
+  //FIXME - undefined
+  def createType(te: model.TypeEntity): Type = {
+    TypeVar("NOT A TYPEVAR- FILLER")
+  }
+  
+  //FIXME - undefined
+  def createArgs(argsList: List[List[model.ValueParam]]): List[List[(String, Type)]] = {
+    List(List(("NOT A NAME", TypeVar("NOT A TYPEVAR - FILLER"))))
   }
   
   def flatten(obj: model.Entity): List[model.MemberEntity] = {
