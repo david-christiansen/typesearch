@@ -15,4 +15,8 @@ libraryDependencies += "se.scalablesolutions.akka" % "akka-remote" % "1.3-RC4"
 
 //Add scala compiler
 
-libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ ) 
+libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _ )
+
+//Test info
+
+libraryDependencies += "org.scala-tools.testing" %% "scalacheck" % "1.9" % "test"

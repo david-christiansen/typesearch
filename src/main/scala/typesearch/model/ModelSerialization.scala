@@ -16,14 +16,16 @@ object ModelSerialization {
   }
 
 
-  trait FormatterHelpers {
+  object FormatterHelpers {
     implicit def str2JsonStr(str: String) = JsString(str)
 
     def buildObject(typ: String, props: (String, JsValue)*) =
       JsObject( (JsString("type") -> JsString(typ)) +: props.map {case (str, v) => JsString(str) -> v})
   }
 
-  implicit object TypeFormat extends sjson.json.Format[Type] with FormatterHelpers {
+  implicit object TypeFormat extends sjson.json.Format[Type] {
+    import FormatterHelpers._
+
     def reads(json: JsValue): Type = json match {
       case JsObject(obj) => obj("type") match {
         case JsString("NamedType") => {
@@ -103,38 +105,90 @@ object ModelSerialization {
 
   }
 
-  implicit object SignatureFormat extends sjson.json.Format[Signature] with FormatterHelpers {
-    def signature(obj: JsObject): (String, Type) = obj match {
-      case JsObject(m) => (fromjson[String](m("name")), fromjson[Type](m("type")))
+  implicit object KindFormat extends sjson.json.Format[Kind] {
+    import FormatterHelpers._
+    def reads(json: JsValue): Kind = json match {
+      case JsObject(obj) => obj("type") match {
+        case JsString("TKind") => TKind(fromjson[Type](obj("lower")), fromjson[Type](obj("upper")))
+        case JsString("ArrKind") => ArrKind(reads(obj("k1")), reads(obj("k2")))
+      }
+    }
+
+    def writes(k: Kind): JsValue = k match {
+      case TKind(lower, upper) => buildObject("TKind", "lower" -> tojson(lower), "upper" -> tojson("upper"))
+      case ArrKind(k1, k2) => buildObject("ArrKind", "k1" -> writes(k1), "k2" -> writes(k2))
+    }
+  }
+
+  implicit val typeArgFormat: sjson.json.Format[TypeArg] = asProduct2("name", "kind")(TypeArg)(TypeArg.unapply(_).get)(DefaultProtocol.StringFormat, KindFormat)
+
+  implicit object TypeDefFormat extends sjson.json.Format[TypeDef] {
+    import FormatterHelpers._
+
+    def typedef(obj: JsObject): (String, List[TypeArg], Type, Package) = obj match {
+      case JsObject(m) =>
+        (fromjson[String](m("name")), fromjson[List[TypeArg]](m("typeArgs")), fromjson[Type](m("extends")), fromjson[Package](m("inPackage")))
+    }
+    def reads(json: JsValue): TypeDef = json match {
+      case td@JsObject(obj) =>
+        val (name, typeArgs, extending, inPackage) = typedef(td)
+        obj("type") match {
+          case JsString("Class") => Class(name, typeArgs, extending, inPackage)
+          case JsString("Trait") => Trait(name, typeArgs, extending, inPackage)
+          case JsString("Class") => {
+            assert(typeArgs isEmpty, "Classes don't take type arguments"); Object(name, extending, inPackage)
+          }
+        }
+    }
+
+    def buildTypeDef(typ: String, td: TypeDef): JsValue =
+      buildObject(typ,
+          "name" -> tojson(td.name),
+          "typeArgs" -> tojson(td.typeArgs),
+          "extending" -> tojson(td.extending),
+          "inPackage" -> tojson(td.inPackage))
+
+    def writes(td: TypeDef): JsValue = td match {
+      case td: Class => buildTypeDef("Class", td)
+      case td: Trait => buildTypeDef("Trait", td)
+      case td: Object => buildTypeDef("Object", td)
+    }
+  }
+
+  implicit object SignatureFormat extends sjson.json.Format[Signature] {
+    import FormatterHelpers._
+
+    def signature(obj: JsObject): (String, Type, TypeDef) = obj match {
+      case JsObject(m) => (fromjson[String](m("name")), fromjson[Type](m("type")), fromjson[TypeDef](m("definedOn")))
     }
 
     def reads(json: JsValue): Signature = json match {
       case sig@JsObject(obj) =>
-        val (name, returnType) = signature(sig)
+        val (name, returnType, definedIn) = signature(sig)
         obj("type") match {
-          case JsString("ValSig") => ValSig(name, returnType)
-          case JsString("VarSig") => VarSig(name, returnType)
-          case JsString("LazyValSig") => LazyValSig(name, returnType)
+          case JsString("ValSig") => ValSig(name, returnType, definedIn)
+          case JsString("VarSig") => VarSig(name, returnType, definedIn)
+          case JsString("LazyValSig") => LazyValSig(name, returnType, definedIn)
           case JsString("DefSig") => {
             val args = fromjson[List[List[(String, Type)]]](obj("args"))
-            DefSig(name, args, returnType)
+            DefSig(name, args, returnType, definedIn)
           }
           case _ => throw new RuntimeException("Not a valid signature type")
         }
       case _ => throw new RuntimeException("Not a valid signature")
     }
 
-    def buildSig(typ: String, name: String, returnType: Type, args: Option[List[List[(String, Type)]]] = None): JsValue =
+    def buildSig(typ: String, name: String, returnType: Type, definedOn: TypeDef, args: Option[List[List[(String, Type)]]] = None): JsValue =
       args match {
-        case Some(a) => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType), "args" -> tojson(a))
-        case None => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType))
+        case Some(a) => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType), "definedOn" -> tojson(definedOn), "args" -> tojson(a))
+        case None => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType), "definedOn" -> tojson(definedOn))
       }
 
     def writes(sig: Signature): JsValue = sig match {
-      case DefSig(name, args, returnType) => buildSig("DefSig", name, returnType, Some(args))
-      case ValSig(name, returnType) => buildSig("ValSig", name, returnType)
-      case VarSig(name, returnType) => buildSig("VarSig", name, returnType)
-      case LazyValSig(name, returnType) => buildSig("LazyValSig", name, returnType)
+      case DefSig(name, args, returnType, definedOn) => buildSig("DefSig", name, returnType, definedOn, Some(args))
+      case ValSig(name, returnType, definedOn) => buildSig("ValSig", name, returnType, definedOn)
+      case VarSig(name, returnType, definedOn) => buildSig("VarSig", name, returnType, definedOn)
+      case LazyValSig(name, returnType, definedOn) => buildSig("LazyValSig", name, returnType, definedOn)
     }
   }
 
