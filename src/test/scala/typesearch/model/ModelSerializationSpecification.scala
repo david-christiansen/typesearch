@@ -21,7 +21,7 @@ trait ModelGenerators {
   implicit def arbType: Arbitrary[Type] = Arbitrary {
       import Arbitrary._
       val genNamedType: Gen[Type] =
-        for (pkg <- genPackage; id <- identifier) yield NamedType(pkg, id)
+        for (pkg <- arbitrary[Package]; id <- identifier) yield NamedType(pkg, id)
 
       val genTypeVar: Gen[Type] = for (id <- identifier) yield TypeVar(id)
 
