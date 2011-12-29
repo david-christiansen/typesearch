@@ -47,7 +47,9 @@ trait TypeDef {
 }
 case class Trait (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
 case class Class (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
-case class Object (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
+case class Object (name: String, extending: Type, inPackage: Package) extends TypeDef {
+  val typeArgs = Nil
+}
 
 
 trait HasShape {
