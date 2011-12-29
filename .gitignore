@@ -4,3 +4,4 @@ project/boot
 project/target
 .cache
 .classpath
+typesearch.json
