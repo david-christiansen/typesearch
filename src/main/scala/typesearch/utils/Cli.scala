@@ -14,6 +14,7 @@ object Cli {
       case "search" => search()
       case "qparse" => testQueryParser()
       case "tparse" => testTypeParser()
+      case "edits" => edits()
       case _ => "Unknown command:" + _
     }
     0
@@ -45,6 +46,29 @@ object Cli {
         val query = qp.parse(in, qp.query)
         
         search()
+      }
+    }
+  }
+
+  def edits(): Unit = {
+    import typesearch.search.{Searcher, SearchState, Edits}
+    import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
+    val reader = new JLineReader(NoCompletion)
+
+    val qp = new QueryParser
+    val input = Option(reader.readOneLine("-----PARSER> "))
+    input match {
+      case None => ()
+      case Some(":quit") => ()
+      case Some(in) => {
+        try{
+          val r = Searcher.ParseQ.parseQ(in)
+          val ss = new SearchState(r, Edits.defaultEdits:_*)
+          ss.results.take(10) foreach(x=>println(x.getOrElse("No More Queries").toString))
+        } catch {
+          case _ => println("Error parsing")
+        }
+        edits()
       }
     }
   }
