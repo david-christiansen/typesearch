@@ -9,19 +9,18 @@ object Extractor {
   
   val seen = mutable.HashSet.empty[model.MemberEntity]
 
-  var defSigs = List(): List[Signature]
-  //ValSig (name: String, returnType: Type, definedOn: TypeDef)
-  def extract(docModel: Universe) = {
+  var sigs = List(): List[Signature]
+  
+  def extract(docModel: Universe): List[Signature] = {
     val dte = flatten(docModel.rootPackage)
     dte foreach (item => item match {
-      case d: model.Def => DefSig(d.name, createArgs(d.valueParams), createType(d.resultType), createTypeDef(d.inTemplate))
-      case v: model.Val if v.isVal => ValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
-      case v: model.Val if v.isVar => VarSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
-      case v: model.Val if v.isLazyVal => LazyValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
+      case d: model.Def => sigs = DefSig(d.name, createArgs(d.valueParams), createType(d.resultType), createTypeDef(d.inTemplate)) :: sigs
+      case v: model.Val if v.isVal => sigs = ValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
+      case v: model.Val if v.isVar => sigs = VarSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
+      case v: model.Val if v.isLazyVal => sigs = LazyValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate)) :: sigs
       case _ => ()
     })
-    
-    println("dte length: " + dte.length)
+    sigs
   }
   
   //FIXME: Might have to check which type of entity you have
@@ -33,28 +32,27 @@ object Extractor {
   }
   
   def createTypeDef(dte: model.DocTemplateEntity): TypeDef = {
-    //Class (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package)
     dte match {
-      case c: model.Class => Class(c.name, createTypeArgs(), createTypeVar(), createPackage(c.toRoot))
-      case t: model.Trait => Trait(t.name, createTypeArgs(), createTypeVar(), createPackage(t.toRoot))
-      case o: model.Object => Object(o.name, createTypeVar(), createPackage(o.toRoot))
+      case c: model.Class => Class(c.name, createTypeArgs(c.typeParams), c.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(c.toRoot))
+      case t: model.Trait => Trait(t.name, createTypeArgs(t.typeParams), t.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(t.toRoot))
+      case o: model.Object => Object(o.name, o.parentType.map(a => createType(a)).getOrElse(AnyT), createPackage(o.toRoot))
     }
   }
   
-  //FIXME - undefined
-  def createTypeArgs(): List[TypeArg] = {
-    //TypeArg (name: String, kind: Kind = TKind())
-    List(TypeArg("TYPEARG NAME", createKind()))
+  def createTypeArgs(tps: List[model.TypeParam]): List[TypeArg] = {
+    val res = tps map (tp => TypeArg(tp.name, createKind(tp)))
+    res foreach(x => println(x.name + ": " + x.kind))
+    res
   }
   
-  //FIXME - undefined
-  def createKind(): Kind = {
-    TKind()
-  }
-  
-  //FIXME - undefined
-  def createTypeVar(): TypeVar = {
-    TypeVar("NOT A TYPEVAR - FILLER")
+  def createKind(param: model.HigherKinded): Kind = {
+    param.typeParams match {
+      case Nil => TKind()
+      case tps => tps.foldLeft[Kind](TKind()) { 
+        (k1: Kind, k2: model.HigherKinded) => 
+          ArrKind(createKind(k2), k1) 
+        }
+    }
   }
   
   //FIXME - undefined
@@ -62,9 +60,8 @@ object Extractor {
     TypeVar("NOT A TYPEVAR- FILLER")
   }
   
-  //FIXME - undefined
-  def createArgs(argsList: List[List[model.ValueParam]]): List[List[(String, Type)]] = {
-    List(List(("NOT A NAME", TypeVar("NOT A TYPEVAR - FILLER"))))
+  def createArgs(argLists: List[List[model.ValueParam]]): List[List[(String, Type)]] = {
+    argLists map(argList => argList map(arg => (arg.name, createType(arg.resultType))))
   }
   
   def flatten(obj: model.Entity): List[model.MemberEntity] = {
