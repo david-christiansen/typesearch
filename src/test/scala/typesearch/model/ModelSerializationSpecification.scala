@@ -56,9 +56,10 @@ trait ModelGenerators {
       } yield Tuple(ts)
 
       def genFunc(sz: Int): Gen[Type] = for {
-        t1sz <- choose(1, sz)
-        t2sz = sz - t1sz
-        t1 <- sizedType(t1sz)
+        argsz <- choose(1, sz)
+        howManyArg <- choose(1, argsz)
+        t2sz = sz - argsz
+        t1 <- listOfN(howManyArg, sizedType(argsz/howManyArg))
         t2 <- sizedType(t2sz)
       } yield Func(t1, t2)
 

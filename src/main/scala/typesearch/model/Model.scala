@@ -75,8 +75,15 @@ case class TraitComposition(base: Type, types: List[Type]) extends Type with IsA
 case object AnyT extends Type with IsAtom
 case object NothingT extends Type with IsAtom
 case object UnitT extends Type with IsAtom
-case class Func(t1: Type, t2: Type) extends Type {
-  val shape = "*[" + t1.shape + "," + t2.shape + "]"
+case class Func(args: List[Type], result: Type) extends Type {
+  val shape = {
+    val argShape = args match {
+      case Nil => "*"
+      case List(t) => t.shape
+      case _ => "*" + args.map(_.shape).mkString("[", ",", "]")
+    }
+    "*[" + argShape + "," + result.shape + "]"
+  }
 }
 case class Tuple(ts: List[Type]) extends Type {
   val shape = "*" + ts.map(_.shape).mkString("[", ",", "]")
