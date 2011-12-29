@@ -2,7 +2,9 @@ package typesearch.utils
 
 import typesearch.query.{QueryLexer, QueryParser}
 import typesearch.dump.TypeParser
+import typesearch.model.Signature
 import dispatch.json.Js
+import collection.immutable.HashMap
 
 object Repl {
   
@@ -38,7 +40,8 @@ object Repl {
 
 object ReplUses {
   
-  def dumpnsearch(in: String, sigs: List[typesearch.model.Signature]): Unit = {
+  def dumpnsearch(in: String, sigs: List[Signature]): Unit = {
+    val shaped: HashMap[String, List[Signature]] = new HashMap
     ()
   }
   
