@@ -32,9 +32,29 @@ object Extractor {
     } 
   }
   
+  def createTypeDef(dte: model.DocTemplateEntity): TypeDef = {
+    //Class (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package)
+    dte match {
+      case c: model.Class => Class(c.name, createTypeArgs(), createTypeVar(), createPackage(c.toRoot))
+      case t: model.Trait => Trait(t.name, createTypeArgs(), createTypeVar(), createPackage(t.toRoot))
+      case o: model.Object => Object(o.name, createTypeArgs(), createTypeVar(), createPackage(o.toRoot))
+    }
+  }
+  
   //FIXME - undefined
-  def createTypeDef(e: model.DocTemplateEntity): TypeDef = {
-    Class(e.name, List(), TypeVar("NOT A TYPEVAR - FILLER"), createPackage(e.toRoot))
+  def createTypeArgs(): List[TypeArg] = {
+    //TypeArg (name: String, kind: Kind = TKind())
+    List(TypeArg("TYPEARG NAME", createKind()))
+  }
+  
+  //FIXME - undefined
+  def createKind(): Kind = {
+    TKind()
+  }
+  
+  //FIXME - undefined
+  def createTypeVar(): TypeVar = {
+    TypeVar("NOT A TYPEVAR - FILLER")
   }
   
   //FIXME - undefined
