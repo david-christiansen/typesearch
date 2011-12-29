@@ -43,12 +43,11 @@ trait TypeDef {
   val name: String
   val typeArgs: List[TypeArg]
   val extending: Type
+  val inPackage: Package
 }
-case class Trait (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef
-case class Class (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef
-case class Object (name: String, typeArgs: List[TypeArg], extending: Type) extends TypeDef with Signature {
-  val returnType = extending
-}
+case class Trait (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
+case class Class (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
+case class Object (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package) extends TypeDef
 
 
 trait HasShape {
@@ -84,8 +83,9 @@ case class Tuple(ts: List[Type]) extends Type {
 trait Signature {
   val name: String
   val returnType: Type
+  val definedOn: TypeDef
 }
-case class ValSig (name: String, returnType: Type) extends Signature
-case class LazyValSig (name: String, returnType: Type) extends Signature
-case class DefSig (name: String, args: List[List[(String, Type)]], returnType: Type) extends Signature
-case class VarSig (name: String, returnType: Type) extends Signature
+case class ValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
+case class LazyValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
+case class DefSig (name: String, args: List[List[(String, Type)]], returnType: Type, definedOn: TypeDef) extends Signature
+case class VarSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
