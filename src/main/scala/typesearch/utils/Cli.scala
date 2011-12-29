@@ -1,7 +1,7 @@
 package typesearch.utils
 
 import typesearch.query.{QueryLexer, QueryParser}
-import typesearch.dump.Dumper
+import typesearch.dump.{Dumper, TypeParser}
 
 import java.io.File
 
@@ -11,9 +11,9 @@ object Cli {
   def main(args: Array[String]): Unit = sys exit {
     args.head match {
       case "dump" => dump(args.tail.toList)
-      //case "search" => search(args)
+      case "search" => search()
       case "qparse" => testQueryParser()
-      //case "tparse" => testTypeParser(args)
+      case "tparse" => testTypeParser()
       case _ => "Unknown command:" + _
     }
     0
@@ -25,6 +25,58 @@ object Cli {
     dumper.process(sources)
   }
 
+  //FIXME combine all these console like applications into one thing
+  def search(): Unit = {
+    import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
+    
+    val qp = new QueryParser
+    val reader = new JLineReader(NoCompletion)
+    val input = Option(reader.readOneLine("-----Search> "))
+    input match {
+      case None => ()
+      case Some(":quit") => ()
+      case Some(in) => {
+        var scan = new qp.lexical.Scanner(in)
+        var lexed = collection.mutable.ListBuffer[qp.lexical.Token]()
+        while (!scan.atEnd) {
+          lexed += scan.first
+          scan = scan.rest
+        }
+        val query = qp.parse(in, qp.query)
+        
+        search()
+      }
+    }
+  }
+
+  
+  
+  def testTypeParser(): Unit = {
+    import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
+    val reader = new JLineReader(NoCompletion)
+
+    val tp = new TypeParser
+    val input = Option(reader.readOneLine("-----PARSER> "))
+    input match {
+      case None => ()
+      case Some(":quit") => ()
+      case Some(in) => {
+        var scan = new tp.lexical.Scanner(in)
+        var lexed = collection.mutable.ListBuffer[tp.lexical.Token]()
+        while (!scan.atEnd) {
+          lexed += scan.first
+          scan = scan.rest
+        }
+        print("Tokens: ")
+        println(lexed toList)
+        print("Query: ")
+        println(tp.parse(in))
+        testTypeParser()
+      }
+    }
+  }
+  
+  
   def testQueryParser(): Unit = {
     import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
     val reader = new JLineReader(NoCompletion)
