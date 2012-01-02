@@ -1,22 +1,22 @@
 package typesearch.query
 
-import typesearch.model.{Type, Signature}
+import typesearch.model.{Type, Signature, DefSig, ValSig, VarSig, LazyValSig}
 
 sealed abstract class MemType
 
-object Def extends MemType {
+case object Def extends MemType {
   override def toString = "def"
 }
 
-object Val extends MemType {
+case object Val extends MemType {
   override def toString = "val"
 }
 
-object Var extends MemType {
+case object Var extends MemType {
   override def toString = "var"
 }
 
-object LazyVal extends MemType {
+case object LazyVal extends MemType {
   override def toString = "lazyval"
 }
 
@@ -60,7 +60,7 @@ case class Query( path: Option[QPath],
                   name: Option[String],
                   args: Option[List[List[QArg]]],
                   resultType: QType) {
-  
+
   override def toString = {
     path.map(_.toString + "#").getOrElse("") +
     memType.getOrElse("").toString + " " +
@@ -68,8 +68,18 @@ case class Query( path: Option[QPath],
     args.map(a => a.map(_.mkString("(",",",")")).mkString).getOrElse("") + ": " +
     resultType.toString
   }
-  
-  def findMatching() = List() 
+
+  def matches(sig: Signature): Boolean =
+    sameMemType(sig) //FIXME rest of comparison
+
+  private[this] def sameMemType(sig: Signature): Boolean =
+    memType match {
+      case None => true
+      case Some(Def) => sig.isInstanceOf[DefSig]
+      case Some(Val) => sig.isInstanceOf[ValSig]
+      case Some(Var) => sig.isInstanceOf[VarSig]
+      case Some(LazyVal) => sig.isInstanceOf[LazyValSig]
+    }
 }
 
 case class QPath(components: List[String]) {
