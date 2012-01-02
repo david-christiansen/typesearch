@@ -80,6 +80,8 @@ case class Query( path: Option[QPath],
       case Some(Var) => sig.isInstanceOf[VarSig]
       case Some(LazyVal) => sig.isInstanceOf[LazyValSig]
     }
+
+  def findMatching(): List[Signature] = List()
 }
 
 case class QPath(components: List[String]) {

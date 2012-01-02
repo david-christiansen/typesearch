@@ -9,19 +9,22 @@ object Extractor {
   
   val seen = mutable.HashSet.empty[model.MemberEntity]
 
-  var defSigs = List(): List[Signature]
-  //ValSig (name: String, returnType: Type, definedOn: TypeDef)
-  def extract(docModel: Universe) = {
+  var sigs = List(): List[Signature]
+  
+  def extract(docModel: Universe): List[Signature] = {
     val dte = flatten(docModel.rootPackage)
-    dte foreach (item => item match {
-      case d: model.Def => DefSig(d.name, createArgs(d.valueParams), createType(d.resultType), createTypeDef(d.inTemplate))
-      case v: model.Val if v.isVal => ValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
-      case v: model.Val if v.isVar => VarSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
-      case v: model.Val if v.isLazyVal => LazyValSig(v.name, createType(v.resultType), createTypeDef(v.inTemplate))
-      case _ => ()
-    })
-    
-    println("dte length: " + dte.length)
+    dte map (item => item match {
+      case d: model.Def =>
+        for (args <- createArgs(d.valueParams); t <- createType(d.resultType))
+        yield DefSig(d.name, args, t, createTypeDef(d.inTemplate))
+      case v: model.Val if v.isVal =>
+        for (t <- createType(v.resultType)) yield ValSig(v.name, t, createTypeDef(v.inTemplate))
+      case v: model.Val if v.isVar =>
+        for (t <- createType(v.resultType)) yield VarSig(v.name, t, createTypeDef(v.inTemplate))
+      case v: model.Val if v.isLazyVal =>
+        for (t <- createType(v.resultType)) yield LazyValSig(v.name, t, createTypeDef(v.inTemplate))
+      case _ => None
+    }) collect { case Some(x) => x }
   }
   
   //FIXME: Might have to check which type of entity you have
@@ -33,38 +36,56 @@ object Extractor {
   }
   
   def createTypeDef(dte: model.DocTemplateEntity): TypeDef = {
-    //Class (name: String, typeArgs: List[TypeArg], extending: Type, inPackage: Package)
     dte match {
-      case c: model.Class => Class(c.name, createTypeArgs(), createTypeVar(), createPackage(c.toRoot))
-      case t: model.Trait => Trait(t.name, createTypeArgs(), createTypeVar(), createPackage(t.toRoot))
-      case o: model.Object => Object(o.name, createTypeVar(), createPackage(o.toRoot))
+      case c: model.Class =>
+        Class(c.name, createTypeArgs(c.typeParams), c.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(c.toRoot))
+      case t: model.Trait =>
+        Trait(t.name, createTypeArgs(t.typeParams), t.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(t.toRoot))
+      case o: model.Object =>
+        Object(o.name, o.parentType.flatMap(a => createType(a)).getOrElse(AnyT), createPackage(o.toRoot))
+    }
+  }
+  
+  def createTypeArgs(tps: List[model.TypeParam]): List[TypeArg] = {
+    tps map (tp => TypeArg(tp.name, createKind(tp)))
+  }
+  
+  def createKind(param: model.HigherKinded): Kind = {
+    param.typeParams match {
+      case Nil => TKind()
+      case tps => tps.foldLeft[Kind](TKind()) { 
+        (k1: Kind, k2: model.HigherKinded) => 
+          ArrKind(createKind(k2), k1) 
+        }
     }
   }
   
   //FIXME - undefined
-  def createTypeArgs(): List[TypeArg] = {
-    //TypeArg (name: String, kind: Kind = TKind())
-    List(TypeArg("TYPEARG NAME", createKind()))
+  def createType(te: model.TypeEntity): Option[Type] = {
+    val parser = new TypeParser
+    parser.parse(te.name.replace("\u21d2","=>")) match {
+        case parser.Success(t, _) => Some(t)
+        case f@parser.Failure(msg, pos) => {println(te.name + " - " + f);None}
+        case _ => None
+      }
   }
   
-  //FIXME - undefined
-  def createKind(): Kind = {
-    TKind()
-  }
-  
-  //FIXME - undefined
-  def createTypeVar(): TypeVar = {
-    TypeVar("NOT A TYPEVAR - FILLER")
-  }
-  
-  //FIXME - undefined
-  def createType(te: model.TypeEntity): Type = {
-    TypeVar("NOT A TYPEVAR- FILLER")
-  }
-  
-  //FIXME - undefined
-  def createArgs(argsList: List[List[model.ValueParam]]): List[List[(String, Type)]] = {
-    List(List(("NOT A NAME", TypeVar("NOT A TYPEVAR - FILLER"))))
+  def createArgs(argLists: List[List[model.ValueParam]]): Option[List[List[MethodArg]]] = {
+    def processArgList(args: List[model.ValueParam]): Option[List[(MethodArg)]] = {
+      val parsed = args map (arg => {
+        //FIXME should be handled
+        if (arg.resultType.name.startsWith("\u21d2")) {
+          //FIXME I just want to make this work on some data
+          ("blah", None)
+        } else (arg.name, createType(arg.resultType))
+      })
+      val collected = parsed collect {case (str, Some(t)) => MethodArg(str, t)}
+      if (collected.length == parsed.length) Some(collected) else None
+    }
+    
+    val parsedLists = argLists map processArgList
+    val collected = parsedLists collect { case Some(x) => x}
+    if (parsedLists.length == collected.length) Some(collected) else None
   }
   
   def flatten(obj: model.Entity): List[model.MemberEntity] = {

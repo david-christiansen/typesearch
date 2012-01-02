@@ -34,8 +34,12 @@ case object Covariant extends Variance
 case object Contravariant extends Variance
 
 sealed abstract class Kind
-case class TKind (lower: Type = NothingT, upper: Type = AnyT) extends Kind
-case class ArrKind (k1: Kind, k2: Kind) extends Kind
+case class TKind (lower: Type = NothingT, upper: Type = AnyT) extends Kind {
+  override def toString = "*"
+}
+case class ArrKind (k1: Kind, k2: Kind) extends Kind {
+  override def toString = k1 + " -> " + k2
+}
 
 case class TypeArg (name: String, kind: Kind = TKind())
 
@@ -72,6 +76,7 @@ case class TypeProjection(from: Type, name: String) extends Type with IsAtom
 case class TraitComposition(base: Type, types: List[Type]) extends Type with IsAtom
 
 //Base types
+case object Wildcard extends Type with IsAtom
 case object AnyT extends Type with IsAtom
 case object NothingT extends Type with IsAtom
 case object UnitT extends Type with IsAtom
@@ -89,6 +94,9 @@ case class Tuple(ts: List[Type]) extends Type {
   val shape = "*" + ts.map(_.shape).mkString("[", ",", "]")
 }
 
+
+case class MethodArg (name: String, typ: Type, byName: Boolean = false)
+
 trait Signature {
   val name: String
   val returnType: Type
@@ -96,5 +104,5 @@ trait Signature {
 }
 case class ValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
 case class LazyValSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature
-case class DefSig (name: String, args: List[List[(String, Type)]], returnType: Type, definedOn: TypeDef) extends Signature
+case class DefSig (name: String, args: List[List[MethodArg]], returnType: Type, definedOn: TypeDef) extends Signature
 case class VarSig (name: String, returnType: Type, definedOn: TypeDef) extends Signature

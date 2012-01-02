@@ -63,6 +63,7 @@ object ModelSerialization {
           val types = fromjson[List[Type]](obj("types"))
           TraitComposition(base, types)
         }
+        case JsString("Wildcard") => Wildcard
         case JsString("AnyT") => AnyT
         case JsString("NothingT") => NothingT
         case JsString("UnitT") => UnitT
@@ -95,6 +96,7 @@ object ModelSerialization {
         buildObject("TypeProjection", "from" -> tojson(from), "name" -> tojson(name))
       case TraitComposition(base, types) =>
         buildObject("TraitComposition", "base" -> tojson(base), "types" -> tojson(types))
+      case Wildcard => buildObject("Wildcard")
       case AnyT => buildObject("AnyT")
       case NothingT => buildObject("NothingT")
       case UnitT => buildObject("UnitT")
@@ -169,7 +171,7 @@ object ModelSerialization {
           case JsString("VarSig") => VarSig(name, returnType, definedIn)
           case JsString("LazyValSig") => LazyValSig(name, returnType, definedIn)
           case JsString("DefSig") => {
-            val args = fromjson[List[List[(String, Type)]]](obj("args"))
+            val args = fromjson[List[List[MethodArg]]](obj("args"))
             DefSig(name, args, returnType, definedIn)
           }
           case _ => throw new RuntimeException("Not a valid signature type")
@@ -177,7 +179,7 @@ object ModelSerialization {
       case _ => throw new RuntimeException("Not a valid signature")
     }
 
-    def buildSig(typ: String, name: String, returnType: Type, definedOn: TypeDef, args: Option[List[List[(String, Type)]]] = None): JsValue =
+    def buildSig(typ: String, name: String, returnType: Type, definedOn: TypeDef, args: Option[List[List[MethodArg]]] = None): JsValue =
       args match {
         case Some(a) => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType), "definedOn" -> tojson(definedOn), "args" -> tojson(a))
         case None => buildObject(typ, "name" -> tojson(name), "returnType" -> tojson(returnType), "definedOn" -> tojson(definedOn))
@@ -190,6 +192,8 @@ object ModelSerialization {
       case LazyValSig(name, returnType, definedOn) => buildSig("LazyValSig", name, returnType, definedOn)
     }
   }
-
+implicit val MethodArgFormat: sjson.json.Format[MethodArg] = asProduct3("name", "typ", "byName")(MethodArg)(MethodArg.unapply(_).get)(DefaultProtocol.StringFormat, TypeFormat, DefaultProtocol.BooleanFormat)
 }
+
+
 

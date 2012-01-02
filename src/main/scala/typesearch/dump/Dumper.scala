@@ -11,10 +11,17 @@
 package typesearch.dump
 
 import scala.tools.nsc._
+import java.io._
 import java.io.File.pathSeparator
 import scala.tools.nsc.reporters.ConsoleReporter
 import scala.tools.nsc.util.FakePos
 import Properties.msilLibPath
+
+import akka.serialization.DefaultProtocol._
+import sjson.json.JsonSerialization._
+import typesearch.model.ModelSerialization._
+import typesearch.model.Signature
+
 
 class Dumper {
 
@@ -22,7 +29,7 @@ class Dumper {
     "StringOps" -> "String"
   ))
 
-  def process(files: List[String]): Unit = {
+  def process(files: List[String], filename: String = "typesearch.json", write: Boolean = true): List[Signature] = {
     var reporter: ConsoleReporter = null
     val docSettings = new doc.Settings(msg => reporter.error(FakePos("scaladoc"), msg + "\n  scaladoc -help  gives more information"))
     docSettings.debug.value = false
@@ -33,7 +40,20 @@ class Dumper {
     val universe = new Compiler(reporter, docSettings) universe files
 
     log("Extracting functions from the model...")
-    Extractor.extract(universe)
+    val sigs = Extractor.extract(universe)
+    if (write){
+      log("Creating json file...")
+      val json = tojson(sigs)
+      
+      log("Writing result to disk...")
+      val f = new File(filename)
+      val p = new java.io.PrintWriter(f)
+      try {
+        p.write(json.toString())
+      }
+      finally { p.close()}
+    }
+    sigs
     
   }
 

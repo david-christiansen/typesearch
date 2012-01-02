@@ -1,9 +1,8 @@
 package typesearch.utils
 
-import typesearch.query.{QueryLexer, QueryParser}
-import typesearch.dump.Dumper
-
+import typesearch.dump.{Dumper}
 import java.io.File
+
 
 object Cli {
   val dumper = new Dumper
@@ -11,43 +10,24 @@ object Cli {
   def main(args: Array[String]): Unit = sys exit {
     args.head match {
       case "dump" => dump(args.tail.toList)
-      //case "search" => search(args)
-      case "qparse" => testQueryParser()
-      //case "tparse" => testTypeParser(args)
+      case "dumpnsearch" => {
+        val sigs = dump(args.tail.toList, false)
+        Repl.run(ReplUses.dumpnsearch, sigs, "Search")
+      }
+      case "search" => Repl.run(ReplUses.search, "Search")
+      case "qparse" => Repl.run(ReplUses.testQueryParser, "QParse")
+      case "tparse" => Repl.run(ReplUses.testTypeParser, "TParse")
+      case "edits" => Repl.run(ReplUses.edits, "Edit")
+      //case "all" => all(args.tail.toList)
       case _ => "Unknown command:" + _
     }
     0
   }
 
-  def dump(filepaths: List[String]): Unit = {
+  def dump(filepaths: List[String], write: Boolean = true): List[typesearch.model.Signature] = {
     val files = filepaths map (f => new File(f))
     val sources = Locator locate files map (_.getPath)
-    dumper.process(sources)
-  }
-
-  def testQueryParser(): Unit = {
-    import scala.tools.nsc.interpreter.{JLineReader, NoCompletion}
-    val reader = new JLineReader(NoCompletion)
-
-    val qp = new QueryParser
-    val input = Option(reader.readOneLine("-----PARSER> "))
-    input match {
-      case None => ()
-      case Some(":quit") => ()
-      case Some(in) => {
-        var scan = new qp.lexical.Scanner(in)
-        var lexed = collection.mutable.ListBuffer[qp.lexical.Token]()
-        while (!scan.atEnd) {
-          lexed += scan.first
-          scan = scan.rest
-        }
-        print("Tokens: ")
-        println(lexed toList)
-        print("Query: ")
-        println(qp.parse(in, qp.query))
-        testQueryParser()
-      }
-    }
+    dumper.process(sources, write = write)
   }
 }
 
