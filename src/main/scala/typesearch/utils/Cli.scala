@@ -8,7 +8,8 @@ object Cli {
   val dumper = new Dumper
 
   def main(args: Array[String]): Unit = sys exit {
-    args.head match {
+    if (args.isEmpty) println("No arguments provided")
+    else args.head match {
       case "dump" => dump(args.tail.toList)
       case "dumpnsearch" => {
         val sigs = dump(args.tail.toList, false)
@@ -19,7 +20,7 @@ object Cli {
       case "tparse" => Repl.run(ReplUses.testTypeParser, "TParse")
       case "edits" => Repl.run(ReplUses.edits, "Edit")
       //case "all" => all(args.tail.toList)
-      case _ => "Unknown command:" + _
+      case other => println("Unknown command:" + other)
     }
     0
   }
